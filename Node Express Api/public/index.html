@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h1>Hola Mundo</h1>
+
+    <label for="">Cedula</label>
+    <input type="text" placeholder="Cedula" id="cedula">
+    <label for="">Full Name</label>
+    <input type="text" placeholder="Full Name" id="fullname">
+    <label for="">pricePerHour</label>
+    <input type="text" placeholder="Price Per Hour" id="price">
+    <br>
+    <br>
+    <button onclick="save()" id="btn-save">Registrar</button>
+    <button onclick="resetAll()">Cancelar</button>
+    <br>
+    <br>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Pago por hora</th>
+                <th>Horas trabajadas</th>
+                <th>Salario</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="table-body">
+        </tbody>
+    </table>
+
+    <script type="text/javascript">
+        const apiURL = 'http://localhost:3000';
+        const tableBody = document.getElementById('table-body');
+        const cedula = document.getElementById('cedula');
+        const fullname = document.getElementById('fullname');
+        const price = document.getElementById('price');
+        const btnSave = document.getElementById('btn-save');
+
+        let isEditing = false;
+        let userId = 0;
+
+        const headers = {
+            "Content-Type": "application/json",
+            // 'Content-Type': 'application/x-www-form-urlencoded',
+        };
+
+        const retrieveUsers = async () => {
+            const response = await fetch(`${apiURL}/employee`);
+            const body = await response.json();
+
+            let number = 1;
+            tableBody.innerHTML = '';
+
+            body.forEach((user) => {
+                user.number = number;
+                addRow(user);
+                number += 1;
+            });
+        }
+
+        const addRow = (data) => {
+            tableBody.innerHTML += `
+            <tr>
+                <td>${data.number}</td>
+                <td>${data.cedula}</td>
+                <td>${data.fullname}</td>
+                <td>${data.pricePerHour}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>
+                    <button onclick="removeUser('${data.id}')">Borrar</button>
+                    <button onclick="getUserDataForEdit('${data.id}')">Editar</button>
+                </td>
+            </tr>
+        `;
+
+        }
+
+        const addNewUser = async () => {
+            const cedulaValue = cedula.value;
+            const fullnameValue = fullname.value;
+            const priceValue = price.value;
+
+            const bodyObj = {
+                cedula: cedulaValue,
+                fullname: fullnameValue,
+                pricePerHour: priceValue
+            }
+
+            const body = JSON.stringify(bodyObj);
+
+            const response = await fetch(`${apiURL}/employee`, {
+                method: "POST", // *GET, POST, PUT, DELETE, etc.
+                headers,
+                body, // body data type must match "Content-Type" header
+            });
+
+            if (response.ok) {
+                await retrieveUsers();
+            } else {
+                const error = await response.json();
+                alert(error.message);
+            }
+        }
+
+        const removeUser = async (id) => {
+            const yesOrNo = prompt(`
+            Realmente desea eliminar este usuario?
+            esto no se puede deshacer
+            1 - Yes
+            2 - No`);
+
+            if (yesOrNo !== '1') {
+                return;
+            }
+
+            const response = await fetch(`${apiURL}/employee/${id}`, {
+                method: "DELETE", // *GET, POST, PUT, DELETE, etc.
+                headers,
+            });
+
+            if (response.ok) {
+                await retrieveUsers();
+            }
+        }
+
+        const getUserDataForEdit = async (id) => {
+            userId = id;
+            const response = await fetch(`${apiURL}/employee/${id}`);
+
+            if (response.ok) {
+                const body = await response.json();
+                username.value = body.data.username;
+                fullname.value = body.data.fullname;
+                isEditing = true;
+                btnSave.innerText = 'Guardar';
+            }
+        }
+
+        const saveEditUser = async () => {
+            const usernameValue = username.value;
+            const fullnameValue = fullname.value;
+
+            const bodyObj = {
+                username: usernameValue,
+                fullname: fullnameValue
+            }
+
+            const body = JSON.stringify(bodyObj);
+
+            const response = await fetch(`${apiURL}/employee/${userId}`, {
+                method: "PUT", // *GET, POST, PUT, DELETE, etc.
+                headers,
+                body, // body data type must match "Content-Type" header
+            });
+
+            if (response.ok) {
+                await retrieveUsers();
+                isEditing = false;
+            } else {
+                const error = await response.json();
+                alert(error.message);
+            }
+        }
+
+        const save = async () => {
+            if (isEditing) {
+                await saveEditUser();
+                return;
+            }
+
+            await addNewUser();
+        }
+
+        const resetAll = () => {
+            isEditing = false;
+            username.value = '';
+            fullname.value = '';
+            btnSave.innerText = 'Registrar';
+        }
+
+        retrieveUsers()
+            .then((response) => {
+            });
+
+        // // Call start
+        // (async () => {
+        //     await retrieveUsers();
+        //     console.log(users)
+        // })();
+
+    </script>
+</body>
+
+</html>

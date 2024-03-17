@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculo de horasTrabajadas</title>
+</head>
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: Arial, sans-serif;
+    }
+
+    th,
+    td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        color: #333333;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+</style>
+<style>
+    input{
+        width: 100px;
+    }
+    button{
+        margin-top: 10px;
+    }
+</style>
+<body>
+    <div style="display: flex; margin-bottom: 30px; margin-left: 30px; margin-right: 30px;">
+        <div>
+            <h1>Empleados</h1>
+            <form id="employeeForm" onsubmit="createEmployee(event)">
+                <label for="cedula">Cedula:</label>
+                <input type="text" id="cedula" name="cedula" required><br>
+                <label for="fullname">Full Name:</label>
+                <input type="text" id="fullname" name="fullname" required><br>
+                <label for="pagoPorHora">Hourly Rate:</label>
+                <input type="number" id="pagoPorHora" name="pagoPorHora" required><br>
+                <button type="submit">Add Employee</button>
+            </form>
+        </div>
+        <div style="margin-left: 50px;">
+            <h1>horasTrabajadas</h1>
+            <form onsubmit="addHora(event)" id="formulario2">
+                <label for="cedula">empleadoId:</label>
+                <input readonly type="text" id="empleadoId" name="empleadoId" required><br>
+                <label for="cedula">Horas Trabajadas:</label>
+                <input type="text" name="horasTrabajadas" id="horasTrabajadas" required><br>
+                <button type="submit">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Cedula</th>
+                <th>Full Name</th>
+                <th>Pago Por Hora</th>
+                <th>Horas Totales</th>
+                <th>Pago Total</th>
+                <th>Acciones</th>
+
+            </tr>
+        </thead>
+        <tbody id="misDatos">
+
+        </tbody>
+    </table>
+
+
+</body>
+
+
+<script>
+    const  handleUpdate = (id, cedula, fullname, pagoPorHora, horasTrabajadas)=> {
+        console.log(cedula,fullname,pagoPorHora)
+        document.getElementById('cedula').value =  cedula.toString();
+        document.getElementById('fullname').value = fullname.toString();
+        document.getElementById('pagoPorHora').value = parseInt(pagoPorHora);
+        document.getElementById('empleadoId').value = parseInt(id);
+    }
+
+    const url = 'http://localhost:1711/posts/'
+
+
+    async function getEmployee() {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        let datoTable = ''
+        let counter = 0
+        data.forEach((value, key) => {
+            console.log(value)
+            counter++
+            datoTable += `
+                    <tr>
+                        <td>${counter}</td>
+                        <td>${value.cedula}</td>
+                        <td>${value.fullname}</td>
+                        <td>${value.pagoPorHora}</td>
+                        <td>${value.horasTrabajadas}</td>
+                        <td>${value.pagoPorHora * value.horasTrabajadas}</td>
+                        <td>
+                            <button onclick="handleUpdate(${value.id},${value.cedula},'${value.fullname}',${value.pagoPorHora},${value.horasTrabajadas})">Editar</button>
+                            <button onclick="deleteEmployee(${value.id})">Eliminar</button>
+                        </td>
+                    <tr>    
+                `
+        })
+        document.getElementById("misDatos").innerHTML = datoTable
+    }
+
+    getEmployee()
+
+
+    async function createEmployee(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const jsonData = {};
+
+        formData.forEach((value, key) => {
+            if (key === "pagoPorHora")
+                jsonData[key] = parseInt(value);
+            else {
+                jsonData[key] = value;
+            }
+        });
+
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        });
+
+        if (response.ok) {
+            alert("Datos agregados de manera satisfactoria");
+            getEmployee()
+        } else {
+            const errorMessage = await response.text();
+            alert(`Error al agregar datos: ${errorMessage}`);
+        }
+    }
+
+
+    async function addHora(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const jsonData = {};
+
+        formData.forEach((value, key) => {
+            if (key === "empleadoId")
+                jsonData[key] = parseInt(value);
+            else {
+                jsonData[key] = value;
+            }
+        });
+
+
+        const response = await fetch(url+"hora", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(jsonData)
+        });
+
+        if (response.ok) {
+            alert("Datos agregados de manera satisfactoria");
+            getEmployee()
+        } else {
+            const errorMessage = await response.text();
+            alert(`Error al agregar datos: ${errorMessage}`);
+        }
+    }
+
+
+    async function deleteEmployee(postId) {
+        const response = await fetch(`${url}/${postId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        alert("Eliminado sastifactoriamente")
+        getEmployee()
+    
+        return data;
+    }
+
+
+    async function updateEmployee(postId, updatedPostData) {
+        const response = await fetch(`${url}${postId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedPostData)
+        });
+        const data = await response.json();
+        return data;
+    }
+
+
+</script>
+
+</html>
